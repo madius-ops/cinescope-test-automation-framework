@@ -2,29 +2,30 @@ import pytest
 import requests
 import time
 
+from entities.roles import Roles
+from models.base_models import RegisterUserResponse
 from utils.data_generator import DataGenerator
 
 
 class TestAuth:
     def test_register_user(self, api_manager, test_user):
         response = api_manager.auth_api.register_user(test_user)
-        response_data = response.json()
 
-        assert response_data["email"] == test_user["email"]
-        # добавим еше проверок
-        assert "id" in response_data
-        assert "USER" in response_data["roles"]
+        valid_response = RegisterUserResponse(**response.json())
+
+        assert valid_response.email == test_user.email
+        assert Roles.USER in valid_response.roles
 
     def test_register_and_login_user(self, api_manager, registered_user):
         login_data = {
-            "email": registered_user["email"],
-            "password": registered_user["password"]
+            "email": registered_user.email,
+            "password": registered_user.password
         }
         response = api_manager.auth_api.login_user(login_data)
         response_data = response.json()
 
         assert "accessToken" in response_data
-        assert response_data["user"]["email"] == registered_user["email"]
+        assert response_data["user"]["email"] == registered_user.email
 
     def test_get_user(self, api_manager):
         # 1. Логинимся
@@ -97,8 +98,8 @@ class TestAuth:
         assert headers["foo"] == "bar", "Значение заголовка не совпадает!"
 
 class TestUserUnauthenticated:
-    def test_get_user_info_without_auth(self, api_manager):
-        response = api_manager.user_api.get_user_info(
+    def test_get_user_info_without_auth(self, unauthenticated_api_manager):
+        response = unauthenticated_api_manager.user_api.get_user_info(
             user_id="",
             expected_status=401
         )
@@ -107,12 +108,12 @@ class TestUserUnauthenticated:
 class TestUser:
     def test_get_user_info(self, api_manager, authenticated_user):
         # 1. Вызываем get_user_info через user_api, передавая id текущего залогиненного юзера
-        user_id = authenticated_user["id"]
+        user_id = authenticated_user.id
         response = api_manager.user_api.get_user_info(user_id)
         response_data = response.json()
 
         # 2. Проверяем, что email и id в ответе совпадают с данными созданного юзера
-        assert response_data["email"] == authenticated_user["email"]
+        assert response_data["email"] == authenticated_user.email
         assert response_data["id"] == user_id
 
     def test_debug_kwargs(self, api_manager):

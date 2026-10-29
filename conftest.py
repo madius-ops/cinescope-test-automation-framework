@@ -3,7 +3,8 @@ import pytest
 from clients.api_manager import ApiManager
 from entities.roles import Roles
 from entities.user import User
-from resourses.user_creds import SuperAdminCreds
+from models.base_models import TestUser, RegisterUserResponse
+from resources.user_creds import SuperAdminCreds
 from utils.data_generator import DataGenerator
 
 
@@ -20,22 +21,22 @@ def api_manager(session):
 
 
 @pytest.fixture
-def test_user():
+def test_user() -> TestUser:
     random_password = DataGenerator.generate_random_password()
 
-    return {
-        "email": DataGenerator.generate_random_email(),
-        "fullName": DataGenerator.generate_random_name(),
-        "password": random_password,
-        "passwordRepeat": random_password,
-        "roles": [Roles.USER.value]
-    }
+    return TestUser(
+        email=DataGenerator.generate_random_email(),
+        fullName=DataGenerator.generate_random_name(),
+        password=random_password,
+        passwordRepeat=random_password,
+        roles=[Roles.USER.value]
+    )
 
 
 @pytest.fixture(scope="function")
 def registered_user(api_manager, test_user):
     response = api_manager.auth_api.register_user(test_user).json()
-    test_user["id"] = response["id"]
+    test_user.id = response["id"]
     return test_user
 
 
@@ -59,13 +60,12 @@ def authenticated_user(api_manager, test_user):
     response_data = response.json()
 
     # Достаем ID из ответа регистрации (или логина)
-    user_id = response_data.get("id")
-    test_user["id"] = user_id
+    test_user.id = response_data.get("id")
 
     # 2. Логинимся под этим же юзером, чтобы получить accessToken
     login_data = {
-        "email": test_user["email"],
-        "password": test_user["password"]
+        "email": test_user.email,
+        "password": test_user.password
     }
     login_response = api_manager.auth_api.login_user(login_data)
     token = login_response.json().get("accessToken")
@@ -90,13 +90,14 @@ def admin_token(unauthenticated_api_manager):
 @pytest.fixture(scope="function")
 def created_movie(super_admin, existing_genre_id):
     payload = DataGenerator.generate_movie_payload(genre_id=existing_genre_id)
-
     response = super_admin.api.movies_api.create_movie(payload)
     movie_id = response.json()["id"]
 
     yield movie_id, payload
-
-    super_admin.api.movies_api.delete_movie(movie_id, expected_status=200)
+    try:
+        super_admin.api.movies_api.delete_movie(movie_id, expected_status=200)
+    except ValueError:
+        pass
 
 @pytest.fixture(scope="function")
 def movies_api(admin_token):
@@ -149,20 +150,15 @@ def super_admin(user_session):
 
 @pytest.fixture(scope="function")
 def creation_user_data(test_user):
-    updated_data = test_user.copy()
-    updated_data.update({
-        "verified": True,
-        "banned": False
-    })
-    return updated_data
+    return test_user.model_copy(update={"verified": True, "banned": False})
 
 @pytest.fixture
 def common_user(user_session, super_admin, creation_user_data):
     new_session = user_session()
 
     common_user = User(
-        creation_user_data['email'],
-        creation_user_data['password'],
+        creation_user_data.email,
+        creation_user_data.password,
         [Roles.USER.value],
         new_session)
 
@@ -172,23 +168,27 @@ def common_user(user_session, super_admin, creation_user_data):
 
 @pytest.fixture
 def admin_data(test_user):
-    data = test_user.copy()
-    data.update({
+    return test_user.model_copy(update={
         "verified": True,
         "banned": False,
         "roles": [Roles.ADMIN.value]
     })
-    return data
 
 @pytest.fixture
 def admin(user_session, admin_data,super_admin):
     api = user_session()
     admin = User(
-        admin_data["email"],
-        admin_data["password"],
+        admin_data.email,
+        admin_data.password,
         [Roles.ADMIN.value],
         api=api,
     )
     super_admin.api.user_api.create_user(admin_data)
     admin.api.auth_api.authenticate(admin.creds)
     return admin
+
+
+def test_register_user(self, api_manager: ApiManager, registration_user_data):
+    response = api_manager.auth_api.register_user(user_data=registration_user_data)
+    register_user_response = RegisterUserResponse(**response.json())
+    assert register_user_response.email == registration_user_data.email, "Email не совпадает"

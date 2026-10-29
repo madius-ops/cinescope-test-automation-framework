@@ -207,3 +207,26 @@ class TestMoviesFiltering:
         #for movie in movies:
         #    assert movie['genreId'] == genre_id, f"Жанр {movie['genreId']} не совпадает с ожидаемым {genre_id}"
 ### БАГ В БЭКЕ: СЛОМАН ФИЛЬТР genreId ###
+
+class TestMoviesDeletion:
+
+
+    @pytest.mark.parametrize("user_fixture, expected_status", [
+        ("super_admin", 200),  # Успешно удаляет
+        ("admin", 403),  # Нет прав
+        ("common_user", 403),  # Нет прав
+        ("unauthenticated_api_manager", 401)  # Гость
+    ])
+    def test_delete_movie_roles(self, request, created_movie, user_fixture, expected_status):
+        # 1. Достаем нужного юзера (или сессию гостя) прямо из твоих готовых фикстур!
+        client = request.getfixturevalue(user_fixture)
+
+        # 2. Берем свежий фильм из твоей фикстуры created_movie
+        movie_id, _ = created_movie
+
+        # 3. Выцепляем movies_api
+        # У твоих объектов User (админ, юзер) апишка лежит внутри .api, а гость — это чистый ApiManager
+        api = client.api.movies_api if hasattr(client, "api") else client.movies_api
+
+        # 4. Бьем ручку удаления (я вижу по конфтесту, что у тебя есть метод delete_movie, юзаем его)
+        api.delete_movie(movie_id, expected_status=expected_status)
