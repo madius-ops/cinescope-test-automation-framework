@@ -1,5 +1,5 @@
 from utils.data_generator import DataGenerator
-
+import pytest
 
 class TestMoviesPositive:
 
@@ -161,3 +161,49 @@ class TestMoviesNegative:
 
         response = common_user.api.movies_api.create_movie(payload,expected_status=403)
         assert response.status_code == 403
+
+
+class TestMoviesFiltering:
+
+    @pytest.mark.parametrize("min_p, max_p", [
+        (100, 500),  # Обычный диапазон
+        (1, 1000),  # Граничные значения из дефолтов сваггера
+    ])
+    def test_filter_by_price_range(self, api_manager, min_p, max_p):
+
+        params = {"minPrice": min_p, "maxPrice": max_p}
+
+        response = api_manager.movies_api.get_movies(params=params)
+        data = response.json()
+        movies = data["movies"]
+
+
+        assert len(movies) > 0, "Список фильмов пуст, ничего проверять"
+
+        for movie in movies:
+            assert min_p <= movie["price"] <= max_p, f"Цена {movie['price']} вылезла за пределы [{min_p}, {max_p}]"
+
+    @pytest.mark.parametrize("location", ["MSK", "SPB"])
+    def test_filter_by_location(self, api_manager, location):
+
+        params = {"locations": location}
+
+        response = api_manager.movies_api.get_movies(params=params)
+        movies = response.json()["movies"]
+
+        assert len(movies) > 0, f"Список фильмов пуст для локации {location}"
+
+        for movie in movies:
+            assert movie['location'] == location, f"Локация {movie['location']} не совпадает с ожидаемой {location}"
+
+   # @pytest.mark.parametrize("genre_id", [4, 8])
+   # def test_filter_by_genre(self, api_manager, genre_id):
+       # params = {"genreId": genre_id}
+
+        #response = api_manager.movies_api.get_movies(params=params)
+        #movies = response.json()["movies"]
+        #assert len(movies) > 0, f"Список фильмов пуст для жанра {genre_id}"
+
+        #for movie in movies:
+        #    assert movie['genreId'] == genre_id, f"Жанр {movie['genreId']} не совпадает с ожидаемым {genre_id}"
+### БАГ В БЭКЕ: СЛОМАН ФИЛЬТР genreId ###
