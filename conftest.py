@@ -6,7 +6,9 @@ from entities.user import User
 from models.base_models import TestUser, RegisterUserResponse
 from resources.user_creds import SuperAdminCreds
 from utils.data_generator import DataGenerator
-
+from sqlalchemy.orm import Session
+from db_requester.db_client import get_db_session
+from db_requester.db_helpers import DBHelper
 
 @pytest.fixture(scope="session")
 def session():
@@ -171,7 +173,7 @@ def admin_data(test_user):
     return test_user.model_copy(update={
         "verified": True,
         "banned": False,
-        "roles": [Roles.ADMIN.value]
+        "roles": [str(Roles.ADMIN.value)]
     })
 
 @pytest.fixture
@@ -188,7 +190,37 @@ def admin(user_session, admin_data,super_admin):
     return admin
 
 
-def test_register_user(self, api_manager: ApiManager, registration_user_data):
+def test_register_user(api_manager: ApiManager, registration_user_data):
     response = api_manager.auth_api.register_user(user_data=registration_user_data)
     register_user_response = RegisterUserResponse(**response.json())
     assert register_user_response.email == registration_user_data.email, "Email не совпадает"
+
+@pytest.fixture(scope="module")
+def db_session() -> Session:
+    """
+    Фикстура, которая создает и возвращает сессию для работы с базой данных
+    После завершения теста сессия автоматически закрывается
+    """
+    db_session = get_db_session()
+    yield db_session
+    db_session.close()
+
+@pytest.fixture(scope="function")
+def db_helper(db_session) -> DBHelper:
+    """
+    Фикстура для экземпляра хелпера
+    """
+    db_helper = DBHelper(db_session)
+    return db_helper
+
+@pytest.fixture(scope="function")
+def created_test_user(db_helper):
+    """
+    Фикстура, которая создает тестового пользователя в БД
+    и удаляет его после завершения теста
+    """
+    user = db_helper.create_test_user(DataGenerator.generate_user_data())
+    yield user
+    # Cleanup после теста
+    if db_helper.get_user_by_id(user.id):
+        db_helper.delete_user(user)

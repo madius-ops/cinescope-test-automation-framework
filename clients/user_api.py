@@ -18,10 +18,18 @@ class UserApi(CustomRequester):
         )
 
     def create_user(self, user_data, expected_status=201):
+        # Если пришла Pydantic-модель — превращаем её в словарь
+        if hasattr(user_data, "model_dump"):
+            data = user_data.model_dump(mode="json")
+        elif hasattr(user_data, "dict"):
+            data = user_data.dict()
+        else:
+            data = user_data
+
         return self.send_request(
             method="POST",
             endpoint=f"{USER}",
-            data=user_data,
+            data=data,
             expected_status=expected_status
         )
 

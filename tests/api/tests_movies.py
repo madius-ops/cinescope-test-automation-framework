@@ -1,5 +1,8 @@
 from utils.data_generator import DataGenerator
 import pytest
+from sqlalchemy.orm import Session
+from db_requester.db_models.movie import MovieDBModel
+from utils.data_generator import DataGenerator
 
 class TestMoviesPositive:
 
@@ -74,13 +77,15 @@ class TestMoviesPositive:
         assert body["name"] == new_name
 
     def test_delete_movie(self, super_admin, existing_genre_id):
+        # 1. Создаем фильм через API
         payload = DataGenerator.generate_movie_payload(genre_id=existing_genre_id)
         movie_id = super_admin.api.movies_api.create_movie(payload).json()["id"]
 
+        # 2. Удаляем через API
         response = super_admin.api.movies_api.delete_movie(movie_id)
         assert response.status_code == 200
 
-        # после удаления — 404
+        # 3. Убеждаемся, что получаем 404
         check = super_admin.api.movies_api.get_movie_by_id(movie_id, expected_status=404)
         assert check.status_code == 404
 

@@ -6,3 +6,4 @@ newpy
 pydantic
 gradio
 pydantic
+sqlalchemy

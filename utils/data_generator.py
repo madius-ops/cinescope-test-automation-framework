@@ -1,5 +1,6 @@
 import random
 import uuid
+from datetime import datetime
 
 from faker import Faker
 
@@ -42,3 +43,38 @@ class DataGenerator:
             "published": True,
             "genreId": genre_id if genre_id is not None else random.randint(1, 10),
         }
+
+    @staticmethod
+    def generate_user_data() -> dict:
+        """Генерирует данные для тестового пользователя"""
+        from uuid import uuid4
+
+        return {
+            'id': f'{uuid4()}',  # генерируем UUID как строку
+            'email': DataGenerator.generate_random_email(),
+            'full_name': DataGenerator.generate_random_name(),
+            'password': DataGenerator.generate_random_password(),
+            'created_at': datetime.now(),
+            'updated_at': datetime.now(),
+            'verified': False,
+            'banned': False,
+            'roles': '{USER}'
+        }
+
+    @staticmethod
+    def generate_movie_data() -> dict:
+        unique_suffix = uuid.uuid4().hex[:6]
+        return {
+            "name": f"Автотестовый Фильм {unique_suffix}",
+            "price": 350,
+            "description": "Описание фильма для автотеста интеграции с БД",
+            "image_url": "https://example.com/poster.jpg",
+            "location": "SPB",
+            "published": True,
+            "genre_id": 1  # убедись, что жанр с таким id существует в genres
+        }
+
+    @staticmethod
+    def generate_random_int(length: int = 10) -> int:
+        return random.randint(10 ** (length - 1), (10 ** length) - 1)
+
