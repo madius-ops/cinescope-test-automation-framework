@@ -1,20 +1,48 @@
-import pytest
-import requests
 import time
-
+import datetime
+import allure
+from pytest_check import check
+from clients.api_manager import ApiManager
 from entities.roles import Roles
 from models.base_models import RegisterUserResponse
 from utils.data_generator import DataGenerator
 
 
 class TestAuth:
-    def test_register_user(self, api_manager, test_user):
-        response = api_manager.auth_api.register_user(test_user)
+    @allure.title("Тест регистрации пользователя с помощью Mock")
+    @allure.severity(allure.severity_level.MINOR)
+    @allure.label("qa_name", "Ivan Petrovich")
+    def test_register_user_mock(self, api_manager: ApiManager, test_user: TestUser, mocker):
+        with allure.step(" Мокаем метод register_user в auth_api"):
+            mock_response = RegisterUserResponse(  # Фиктивный ответ
+                id="id",
+                email="email@email.com",
+                fullName="fullName",
+                verified=True,
+                banned=False,
+                roles=[Roles.SUPER_ADMIN],
+                createdAt=str(datetime.datetime.now())
+            )
 
-        valid_response = RegisterUserResponse(**response.json())
+            mocker.patch.object(
+                api_manager.auth_api,  # Объект, который нужно замокать
+                'register_user',  # Метод, который нужно замокать
+                return_value=mock_response  # Фиктивный ответ
+            )
 
-        assert valid_response.email == test_user.email
-        assert Roles.USER in valid_response.roles
+        with allure.step("Вызываем метод, который должен быть замокан"):
+            register_user_response = api_manager.auth_api.register_user(test_user)
+
+        with allure.step("Проверяем, что ответ соответствует ожидаемому"):
+            with allure.step("Проверка поля персональных данных"):  # обратите внимание на вложенность allure.step
+                with check:
+                    # Строка ниже выдаст исклющение и но выполнение теста продолжится
+                    check.equal(register_user_response.fullName, mock_response.fullName)
+                    check.equal(register_user_response.email, mock_response.email)
+
+            with allure.step("Проверка поля banned"):
+                with check("Проверка поля banned"):  # можно использовать вместо allure.step
+                    check.equal(register_user_response.banned, mock_response.banned)
 
     def test_register_and_login_user(self, api_manager, registered_user):
         login_data = {

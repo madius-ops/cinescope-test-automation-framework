@@ -7,3 +7,6 @@ pydantic
 gradio
 pydantic
 sqlalchemy
+allure-pytest
+pytest-check
+pytest-rerunfailures
