@@ -1,4 +1,6 @@
 import time
+import uuid
+
 import requests
 import pytest
 from clients.api_manager import ApiManager
@@ -171,7 +173,10 @@ def common_user(user_session, super_admin, creation_user_data):
 
 @pytest.fixture
 def admin_data(test_user):
+    # Добавляем случайный суффикс, чтобы email гарантированно не конфликтовал в БД
+    unique_email = f"admin_{uuid.uuid4().hex[:6]}_{test_user.email}"
     return test_user.model_copy(update={
+        "email": unique_email,
         "verified": True,
         "banned": False,
         "roles": [str(Roles.ADMIN.value)]

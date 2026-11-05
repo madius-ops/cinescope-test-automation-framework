@@ -2,6 +2,10 @@ from typing import Any, Dict
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
 from sqlalchemy.orm import declarative_base
 
+from datetime import datetime
+from typing import List, Optional
+from pydantic import BaseModel, ConfigDict, Field
+
 Base = declarative_base()
 
 
@@ -36,3 +40,23 @@ class MovieDBModel(Base):
 
     def __repr__(self) -> str:
         return f"<Movie(id={self.id}, name='{self.name}')>"
+
+class MovieItemResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    name: str
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    price: Optional[int] = None
+    rating: Optional[float] = None
+    genre_id: Optional[int] = None
+    location: Optional[str] = None
+    published: Optional[bool] = None
+    created_at: Optional[datetime | str] = None
+
+
+class MoviesListResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    movies: List[MovieItemResponse] = Field(default_factory=list)
