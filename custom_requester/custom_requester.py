@@ -3,6 +3,24 @@ import logging
 import os
 from pydantic import BaseModel
 from constants.constants import RED, GREEN, RESET
+import ssl
+from requests.adapters import HTTPAdapter
+from urllib3.poolmanager import PoolManager
+
+
+class TLSAdapter(HTTPAdapter):
+    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
+        pool_kwargs["ssl_context"] = ctx
+        self.poolmanager = PoolManager(
+            num_pools=connections,
+            maxsize=maxsize,
+            block=block,
+            **pool_kwargs
+        )
 
 
 class CustomRequester:
@@ -13,6 +31,13 @@ class CustomRequester:
 
     def __init__(self, session, base_url):
         self.session = session
+        self.session.verify = False
+
+        # Монтируем адаптер для обхода строгого TLS в Python 3.14
+        adapter = TLSAdapter()
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
+
         self.base_url = base_url
         self.headers = self.base_headers.copy()
         self.session.headers.update(self.base_headers)

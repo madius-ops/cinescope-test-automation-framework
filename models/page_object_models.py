@@ -1,3 +1,4 @@
+import allure
 from playwright.sync_api import Page
 from models.base_page import BasePage
 
@@ -153,3 +154,39 @@ class CinescopLoginPage(BasePage):
         # Ожидание исчезновения алерта
         notification_locator.wait_for(state="hidden")  # Ждем, пока алерт исчезнет
         assert notification_locator.is_visible() == False, "Уведомление исчезло"
+
+class CineScopeMoviePage(BasePage):
+    def __init__(self, page: Page):
+        super().__init__(page)
+        # Локаторы страницы фильма и формы отзыва
+        self.review_textarea = "textarea[name='review'], textarea[placeholder*='отзыв']"
+        self.submit_review_button = "button[data-qa-id='movie_review_submit_button']"
+        # Если оценка выставляется радиокнопками/звёздами (data-qa или селектор)
+        self.rating_star = "button[data-qa-id='rate-movie-btn'], .rating-star"
+        self.submit_review_button = "button[data-qa-id='submit-review-btn'], button:has-text('Отправить отзыв')"
+        self.reviews_list = "div[data-qa-id='reviews-container'], .reviews-block"
+
+    @allure.step("Открытие страницы фильма по id: {movie_id}")
+    def open_movie(self, movie_id: int):
+        self.open_url(f"{self.home_url}movies/{movie_id}")
+
+    @allure.step("Оставление отзыва с текстом: '{review_text}'")
+    def leave_review(self, review_text: str):
+        # 1. Вводим текст
+        self.enter_text_to_element(self.review_textarea, review_text)
+
+        # 2. Находим кнопку по data-qa-id
+        submit_btn = self.page.locator("button[data-qa-id='movie_review_submit_button']")
+
+        # 3. Скроллим прямо к кнопке, чтобы она точно была на экране
+        submit_btn.scroll_into_view_if_needed()
+
+        # 4. Пробиваем клик с force=True (игнорирует перекрытия и проверки наведения)
+        submit_btn.click(force=True)
+
+    @allure.step("Проверка наличия отзыва на странице")
+    def assert_review_is_published(self, review_text: str):
+        with allure.step(f"Проверка отображения текста отзыва: '{review_text}'"):
+            review_locator = self.page.locator(f"text={review_text}")
+            review_locator.wait_for(state="visible", timeout=10000)
+            assert review_locator.is_visible(), f"Отзыв '{review_text}' не отобразился на странице"

@@ -3,6 +3,7 @@ import uuid
 
 import requests
 import pytest
+from playwright.sync_api import sync_playwright
 from clients.api_manager import ApiManager
 from entities.roles import Roles
 from entities.user import User
@@ -235,3 +236,15 @@ def created_test_user(db_helper):
 def delay_between_retries():
     time.sleep(2)  # Пауза в 2 секунды между попытками
     yield
+
+@pytest.fixture(scope="function")
+def browser_page():
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(headless=False)
+        context = browser.new_context()
+        page = context.new_page()
+
+        yield page
+
+        context.close()
+        browser.close()
