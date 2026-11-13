@@ -45,7 +45,7 @@
 ## 📁 Структура проекта
 
 ```text
-cinescope-aqa-framework/
+cinescope-test-automation-framework/
 ├── clients/                  # Микросервисные API-клиенты
 │   ├── api_manager.py        # Фасадный менеджер клиентов (ApiManager)
 │   ├── auth_api.py           # Клиент авторизации и регистрации
@@ -85,8 +85,8 @@ cinescope-aqa-framework/
 
 ### 1. Клонирование репозитория
 ```bash
-git clone https://github.com/madius-ops/cinescope-aqa-framework.git
-cd cinescope-aqa-framework
+git clone https://github.com/madius-ops/cinescope-test-automation-framework.git
+cd cinescope-test-automation-framework
 ```
 
 ### 2. Создание и активация виртуального окружения
