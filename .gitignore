@@ -21,3 +21,8 @@ __pycache__/
 htmlcov/
 allure-results/
 allure-report/
+
+# Local notes
+LEGEND.md
+INTERVIEW_CHEATSHEET.md
+
