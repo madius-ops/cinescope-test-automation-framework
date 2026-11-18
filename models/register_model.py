@@ -15,7 +15,7 @@ class RegisteredUser(BaseModel):
     @field_validator("email")
     def check_email_at_symbol(cls, value: str) -> str:
         if "@" not in value:
-            raise ValueError("Ебать, мыло без '@'? Так не пойдет.")
+            raise ValueError("Некорректный формат email: отсутствует символ '@'")
         return value
 
 def test_user_registration_data(registration_user_data):
@@ -64,7 +64,7 @@ def test_pydantic_custom_validators():
     try:
         RegisteredUser(**bad_email_data)
     except ValidationError as e:
-        logger.error(f"❌ Ожидаемая ошибка (кривое мыло):\n{e}")
+        logger.error(f"❌ Ожидаемая ошибка (некорректный email):\n{e}")
 
     # --- ОШИБКА 2: КОРОТКИЙ ПАРОЛЬ ---
     bad_password_data = valid_data.copy()
